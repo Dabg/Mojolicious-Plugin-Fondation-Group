@@ -37,14 +37,33 @@ sub fondation_finalyze ($self, $app, $long_name) {
 
     # Only establish user↔group relation if User plugin is loaded
     if ($registry->{'Mojolicious::Plugin::Fondation::User'}) {
+        # Underlying has_many / belongs_to
+        Mojolicious::Plugin::Fondation::User::Schema::Result::User->has_many(
+            'user_group',
+            'Mojolicious::Plugin::Fondation::Group::Schema::Result::UserGroup',
+            'user_id',
+        );
+        Mojolicious::Plugin::Fondation::Group::Schema::Result::UserGroup->belongs_to(
+            'user',
+            'Mojolicious::Plugin::Fondation::User::Schema::Result::User',
+            { 'foreign.id' => 'self.user_id' },
+        );
+
+        # Re-register sources so the schema clones pick up the new relationships
+        my $c = $app->build_controller;
+        if ($c->has_helper('schema_class')) {
+            my $sc = $c->schema_class;
+            eval {
+                $sc->register_source('User',
+                    Mojolicious::Plugin::Fondation::User::Schema::Result::User->result_source_instance);
+                $sc->register_source('UserGroup',
+                    Mojolicious::Plugin::Fondation::Group::Schema::Result::UserGroup->result_source_instance);
+                1;
+            } or $app->log->warn("[$long_name] Failed to re-register sources: $@");
+        }
+
         many_to_many_async('Mojolicious::Plugin::Fondation::User::Schema::Result::User', 'groups', 'user_group', 'group');
         many_to_many_async('Mojolicious::Plugin::Fondation::Group::Schema::Result::Group', 'users',  'user_group', 'user');
-    }
-
-    # Only establish group↔perm relation if Perm plugin is loaded
-    if ($registry->{'Mojolicious::Plugin::Fondation::Perm'}) {
-        many_to_many_async('Mojolicious::Plugin::Fondation::Perm::Schema::Result::Perm',  'groups', 'group_perm', 'group');
-        many_to_many_async('Mojolicious::Plugin::Fondation::Group::Schema::Result::Group', 'perms',  'group_perm', 'perm');
     }
 
     return 1;

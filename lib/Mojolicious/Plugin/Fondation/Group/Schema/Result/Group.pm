@@ -52,10 +52,4 @@ __PACKAGE__->has_many(
     'group_id',
 );
 
-__PACKAGE__->has_many(
-    'group_perm',
-    'Mojolicious::Plugin::Fondation::Perm::Schema::Result::GroupPerm',
-    'group_id',
-);
-
 1;
