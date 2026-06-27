@@ -25,6 +25,11 @@ sub _has_perm_plugin ($self) {
 # CRUD — groups
 # ---------------------------------------------------------------------------
 
+# Render the HTML page (no DB query — datatable loads via AJAX)
+sub index ($self) {
+    $self->render(template => 'group/list');
+}
+
 # List all groups (GET /api/Group)
 sub list ($self) {
     $self->render_later;
